@@ -1,4 +1,5 @@
-import { View, Text, Image, StyleSheet } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
+import { Image } from "expo-image";
 
 import COLORS from "../../constants/colors";
 import { images } from "../../../assets/assets";
@@ -9,8 +10,8 @@ export default function AuthHeader({ title, description }) {
       <Image
         source={images.logo}
         style={styles.logo}
-        resizeMode="contain"
-        fadeDuration={0}
+        contentFit="contain"
+        cachePolicy="memory-disk"
       />
 
       <Text style={styles.title}>{title}</Text>

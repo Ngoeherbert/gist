@@ -9,157 +9,394 @@ import {
   ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import COLORS from "../../constants/colors";
 import AuthHeader from "../../components/auth/AuthHeader";
 import AuthInput from "../../components/auth/AuthInput";
 import AuthButton from "../../components/auth/AuthButton";
 
+import useAuthStore from "../../store/useAuthStore";
+
 export default function RegisterScreen({ navigation }) {
-  const [name, setName] = useState("");
-  const [emailOrPhone, setEmailOrPhone] = useState("");
+  // ==========================================
+  // ZUSTAND
+  // ==========================================
+
+  const updateProfile = useAuthStore(
+    (state) => state.updateProfile,
+  );
+
+  const profile = useAuthStore(
+    (state) => state.profile,
+  );
+
+  // ==========================================
+  // LOCAL FORM STATE
+  // ==========================================
+
+  // Password intentionally stays local.
+  // We do not persist passwords in Zustand.
+
+  const [name, setName] = useState(
+    profile?.name || "",
+  );
+
+  const [email, setEmail] = useState(
+    profile?.email || "",
+  );
+
   const [password, setPassword] = useState("");
 
-  const [showPassword, setShowPassword] = useState(false);
-  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [showPassword, setShowPassword] =
+    useState(false);
+
+  const [agreedToTerms, setAgreedToTerms] =
+    useState(false);
+
+  const [error, setError] = useState("");
+
+  // ==========================================
+  // VALIDATION
+  // ==========================================
+
+  const isValidEmail = (value) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+      value.trim(),
+    );
+  };
+
+  // ==========================================
+  // REGISTER
+  // ==========================================
 
   const handleRegister = () => {
-    if (!agreedToTerms) {
-      console.log("Please accept the Terms and Conditions");
+    setError("");
+
+    const cleanName = name.trim();
+    const cleanEmail = email.trim().toLowerCase();
+
+    // ------------------------------------------
+    // NAME
+    // ------------------------------------------
+
+    if (!cleanName) {
+      setError("Please enter your full name.");
       return;
     }
 
-    console.log({
-      name,
-      emailOrPhone,
-      password,
+    // ------------------------------------------
+    // EMAIL
+    // ------------------------------------------
+
+    if (!cleanEmail) {
+      setError(
+        "Please enter your email address.",
+      );
+      return;
+    }
+
+    if (!isValidEmail(cleanEmail)) {
+      setError(
+        "Please enter a valid email address.",
+      );
+      return;
+    }
+
+    // ------------------------------------------
+    // PASSWORD
+    // ------------------------------------------
+
+    if (!password) {
+      setError("Please enter a password.");
+      return;
+    }
+
+    if (password.length < 8) {
+      setError(
+        "Password must be at least 8 characters.",
+      );
+      return;
+    }
+
+    // ------------------------------------------
+    // TERMS
+    // ------------------------------------------
+
+    if (!agreedToTerms) {
+      setError(
+        "Please accept the Terms and Conditions.",
+      );
+      return;
+    }
+
+    // ==========================================
+    // SAVE REGISTRATION DATA
+    // ==========================================
+
+    updateProfile({
+      name: cleanName,
+      email: cleanEmail,
+
+      emailVerified: false,
+
+      onboardingCompleted: false,
     });
 
-    navigation.navigate("VerifyContact");
+    console.log("Registration:", {
+      name: cleanName,
+      email: cleanEmail,
+    });
+
+    /*
+     * Password is intentionally NOT stored
+     * in Zustand.
+     *
+     * When the backend is connected, the password
+     * will be sent securely to the registration API.
+     */
+
+    // ==========================================
+    // EMAIL VERIFICATION
+    // ==========================================
+
+    navigation.navigate("VerifyContact", {
+      contact: cleanEmail,
+      method: "email",
+      purpose: "registration",
+    });
   };
+
+  // ==========================================
+  // GOOGLE
+  // ==========================================
 
   const handleGoogleRegister = () => {
     console.log("Google OAuth");
   };
 
+  // ==========================================
+  // APPLE
+  // ==========================================
+
   const handleAppleRegister = () => {
     console.log("Apple OAuth");
   };
 
+  // ==========================================
+  // RENDER
+  // ==========================================
+
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    <SafeAreaView
+      style={styles.safeArea}
+      edges={["top", "bottom"]}
     >
-      <ScrollView
-        contentContainerStyle={styles.content}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={
+          Platform.OS === "ios"
+            ? "padding"
+            : undefined
+        }
       >
-        {/* Header */}
-        <AuthHeader
-          title="Create your account."
-          description="Join Gist and start connecting with people."
-        />
+        <ScrollView
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* HEADER */}
 
-        {/* Full Name */}
-        <AuthInput
-          placeholder="Full name"
-          value={name}
-          onChangeText={setName}
-          autoCapitalize="words"
-        />
-
-        {/* Email / Phone */}
-        <AuthInput
-          placeholder="Email or phone number"
-          value={emailOrPhone}
-          onChangeText={setEmailOrPhone}
-          keyboardType="email-address"
-          autoCapitalize="none"
-        />
-
-        {/* Password */}
-        <View style={styles.passwordContainer}>
-          <AuthInput
-            placeholder="Password"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry={!showPassword}
+          <AuthHeader
+            title="Create your account."
+            description="Join Gist and start connecting with people."
           />
 
-          <Pressable
-            style={styles.eyeButton}
-            onPress={() => setShowPassword(!showPassword)}
-          >
-            <Ionicons
-              name={showPassword ? "eye-off-outline" : "eye-outline"}
-              size={20}
-              color={COLORS.textSecondary}
-            />
-          </Pressable>
-        </View>
+          {/* FULL NAME */}
 
-        {/* Terms & Conditions */}
-        <Pressable
-          style={styles.termsContainer}
-          onPress={() => setAgreedToTerms(!agreedToTerms)}
-        >
-          <View
-            style={[styles.checkbox, agreedToTerms && styles.checkboxActive]}
-          >
-            {agreedToTerms && (
-              <Ionicons name="checkmark" size={15} color={COLORS.black} />
-            )}
+          <AuthInput
+            placeholder="Full name"
+            value={name}
+            onChangeText={(value) => {
+              setName(value);
+              setError("");
+            }}
+            autoCapitalize="words"
+          />
+
+          {/* EMAIL */}
+
+          <AuthInput
+            placeholder="Email address"
+            value={email}
+            onChangeText={(value) => {
+              setEmail(value);
+              setError("");
+            }}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+
+          {/* PASSWORD */}
+
+          <View style={styles.passwordContainer}>
+            <AuthInput
+              placeholder="Password"
+              value={password}
+              onChangeText={(value) => {
+                setPassword(value);
+                setError("");
+              }}
+              secureTextEntry={!showPassword}
+            />
+
+            <Pressable
+              style={styles.eyeButton}
+              onPress={() =>
+                setShowPassword(!showPassword)
+              }
+              hitSlop={10}
+            >
+              <Ionicons
+                name={
+                  showPassword
+                    ? "eye-off-outline"
+                    : "eye-outline"
+                }
+                size={20}
+                color={COLORS.textSecondary}
+              />
+            </Pressable>
           </View>
 
-          <Text style={styles.termsText}>
-            I agree to the{" "}
-            <Text style={styles.termsLink}>Terms and Conditions</Text> and{" "}
-            <Text style={styles.termsLink}>Privacy Policy</Text>
-          </Text>
-        </Pressable>
+          {/* TERMS */}
 
-        {/* Create Account */}
-        <AuthButton title="Create Account" onPress={handleRegister} />
+          <Pressable
+            style={styles.termsContainer}
+            onPress={() => {
+              setAgreedToTerms(!agreedToTerms);
+              setError("");
+            }}
+          >
+            <View
+              style={[
+                styles.checkbox,
+                agreedToTerms &&
+                  styles.checkboxActive,
+              ]}
+            >
+              {agreedToTerms && (
+                <Ionicons
+                  name="checkmark"
+                  size={15}
+                  color={COLORS.black}
+                />
+              )}
+            </View>
 
-        {/* Divider */}
-        <View style={styles.dividerContainer}>
-          <View style={styles.divider} />
-
-          <Text style={styles.dividerText}>OR</Text>
-
-          <View style={styles.divider} />
-        </View>
-
-        {/* Google */}
-        <Pressable style={styles.socialButton} onPress={handleGoogleRegister}>
-          <Ionicons name="logo-google" size={19} color={COLORS.text} />
-
-          <Text style={styles.socialText}>Continue with Google</Text>
-        </Pressable>
-
-        {/* Apple */}
-        <Pressable style={styles.socialButton} onPress={handleAppleRegister}>
-          <Ionicons name="logo-apple" size={20} color={COLORS.text} />
-
-          <Text style={styles.socialText}>Continue with Apple</Text>
-        </Pressable>
-
-        {/* Login */}
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>Already have an account? </Text>
-
-          <Pressable onPress={() => navigation.navigate("Login")}>
-            <Text style={styles.link}>Log in</Text>
+            <Text style={styles.termsText}>
+              I agree to the{" "}
+              <Text style={styles.termsLink}>
+                Terms and Conditions
+              </Text>{" "}
+              and{" "}
+              <Text style={styles.termsLink}>
+                Privacy Policy
+              </Text>
+            </Text>
           </Pressable>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+
+          {/* ERROR */}
+
+          {error ? (
+            <Text style={styles.error}>
+              {error}
+            </Text>
+          ) : null}
+
+          {/* CREATE ACCOUNT */}
+
+          <AuthButton
+            title="Create Account"
+            onPress={handleRegister}
+          />
+
+          {/* DIVIDER */}
+
+          <View style={styles.dividerContainer}>
+            <View style={styles.divider} />
+
+            <Text style={styles.dividerText}>
+              OR
+            </Text>
+
+            <View style={styles.divider} />
+          </View>
+
+          {/* GOOGLE */}
+
+          <Pressable
+            style={styles.socialButton}
+            onPress={handleGoogleRegister}
+          >
+            <Ionicons
+              name="logo-google"
+              size={19}
+              color={COLORS.text}
+            />
+
+            <Text style={styles.socialText}>
+              Continue with Google
+            </Text>
+          </Pressable>
+
+          {/* APPLE */}
+
+          <Pressable
+            style={styles.socialButton}
+            onPress={handleAppleRegister}
+          >
+            <Ionicons
+              name="logo-apple"
+              size={20}
+              color={COLORS.text}
+            />
+
+            <Text style={styles.socialText}>
+              Continue with Apple
+            </Text>
+          </Pressable>
+
+          {/* LOGIN */}
+
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>
+              Already have an account?{" "}
+            </Text>
+
+            <Pressable
+              onPress={() =>
+                navigation.navigate("Login")
+              }
+            >
+              <Text style={styles.link}>
+                Log in
+              </Text>
+            </Pressable>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
@@ -186,8 +423,8 @@ const styles = StyleSheet.create({
   termsContainer: {
     flexDirection: "row",
     alignItems: "flex-start",
-    marginTop: 4,
-    marginBottom: 8,
+    marginTop: 8,
+    marginBottom: 14,
   },
 
   checkbox: {
@@ -218,10 +455,18 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 
+  error: {
+    color: "#FF6B6B",
+    fontSize: 12,
+    marginTop: -2,
+    marginBottom: 8,
+    textAlign: "center",
+  },
+
   dividerContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginVertical: 18,
+    marginVertical: 22,
   },
 
   divider: {
@@ -259,7 +504,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 14,
+    marginTop: 16,
   },
 
   footerText: {

@@ -8,20 +8,70 @@ import {
   Platform,
   ScrollView,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 import COLORS from "../../constants/colors";
 import AuthHeader from "../../components/auth/AuthHeader";
 import AuthInput from "../../components/auth/AuthInput";
 import AuthButton from "../../components/auth/AuthButton";
 
+import { useAppStore } from "../../store/useAppStore";
+
 export default function LoginScreen({ navigation }) {
-  const [email, setEmail] = useState("");
+  // ==================================================
+  // ZUSTAND
+  // ==================================================
+
+  const profile = useAppStore((state) => state.profile);
+  const updateProfile = useAppStore((state) => state.updateProfile);
+
+  // ==================================================
+  // LOCAL UI STATE
+  // ==================================================
+
+  const [email, setEmail] = useState(profile?.email || "");
+
   const [password, setPassword] = useState("");
 
+  const [showPassword, setShowPassword] = useState(false);
+
+  // ==================================================
+  // LOGIN
+  // ==================================================
+
   const handleLogin = () => {
-    // Authentication will be connected here later.
-    console.log("Login:", email, password);
+    const identifier = email.trim();
+
+    if (!identifier) {
+      return;
+    }
+
+    /*
+     * Save the login identifier into Zustand.
+     *
+     * We don't save the password in the profile store.
+     */
+    updateProfile({
+      email: identifier,
+    });
+
+    /*
+     * Authentication will be connected here later.
+     *
+     * Example:
+     *
+     * await login(identifier, password);
+     */
+
+    console.log("Login:", {
+      email: identifier,
+      password,
+    });
   };
+
+  // ==================================================
+  // RENDER
+  // ==================================================
 
   return (
     <KeyboardAvoidingView
@@ -31,34 +81,67 @@ export default function LoginScreen({ navigation }) {
       <ScrollView
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
+        {/* HEADER */}
+
         <AuthHeader
           title="Welcome back."
           description="Log in to continue to your Gist account."
         />
+
+        {/* EMAIL / PHONE */}
 
         <AuthInput
           placeholder="Email or phone number"
           value={email}
           onChangeText={setEmail}
           keyboardType="email-address"
+          autoCapitalize="none"
+          autoCorrect={false}
         />
 
-        <AuthInput
-          placeholder="Password"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-        />
+        {/* PASSWORD */}
+
+        <View style={styles.passwordContainer}>
+          <AuthInput
+            placeholder="Password"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry={!showPassword}
+          />
+
+          <Pressable
+            style={styles.eyeButton}
+            onPress={() => setShowPassword((current) => !current)}
+            hitSlop={8}
+          >
+            <Ionicons
+              name={showPassword ? "eye-off-outline" : "eye-outline"}
+              size={20}
+              color={COLORS.textSecondary}
+            />
+          </Pressable>
+        </View>
+
+        {/* FORGOT PASSWORD */}
 
         <Pressable
           style={styles.forgotButton}
-          onPress={() => navigation.navigate("ForgotPassword")}
+          onPress={() =>
+            navigation.navigate("ForgotPassword", {
+              contact: email.trim(),
+            })
+          }
         >
           <Text style={styles.forgotText}>Forgot password?</Text>
         </Pressable>
 
+        {/* LOGIN */}
+
         <AuthButton title="Log In" onPress={handleLogin} />
+
+        {/* FOOTER */}
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>Don't have an account? </Text>
@@ -81,20 +164,32 @@ const styles = StyleSheet.create({
   content: {
     flexGrow: 1,
     justifyContent: "center",
-    paddingHorizontal: 24,
-    paddingVertical: 40,
+    paddingHorizontal: 20,
+    paddingVertical: 24,
+  },
+
+  passwordContainer: {
+    position: "relative",
+  },
+
+  eyeButton: {
+    position: "absolute",
+    right: 16,
+    top: 15,
+    zIndex: 2,
   },
 
   forgotButton: {
     alignSelf: "flex-end",
-    marginTop: -2,
-    marginBottom: 8,
+    marginTop: 4,
+    marginBottom: 14,
+    paddingVertical: 4,
   },
 
   forgotText: {
     color: COLORS.text,
-    fontSize: 14,
-    fontWeight: "500",
+    fontSize: 13,
+    fontWeight: "600",
   },
 
   footer: {
@@ -106,12 +201,12 @@ const styles = StyleSheet.create({
 
   footerText: {
     color: COLORS.textSecondary,
-    fontSize: 14,
+    fontSize: 13,
   },
 
   link: {
     color: COLORS.text,
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "700",
   },
 });

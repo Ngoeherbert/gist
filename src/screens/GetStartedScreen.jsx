@@ -1,4 +1,5 @@
-import { View, Text, Image, Pressable, StyleSheet } from "react-native";
+import { View, Text, Pressable, StyleSheet } from "react-native";
+import { Image } from "expo-image";
 
 import COLORS from "../constants/colors";
 import { images } from "../../assets/assets";
@@ -7,7 +8,12 @@ export default function GetStartedScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <View style={styles.content}>
-        <Image source={images.logo} style={styles.logo} resizeMode="contain" />
+        <Image
+          source={images.logo}
+          style={styles.logo}
+          contentFit="contain"
+          cachePolicy="memory-disk"
+        />
 
         <Text style={styles.title}>Welcome to Gist.</Text>
 
